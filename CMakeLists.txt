@@ -45,6 +45,9 @@ set(APRILTAG_SRCS apriltag.c apriltag_pose.c apriltag_quad_thresh.c)
 file(GLOB TAG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tag*.c)
 add_library(${PROJECT_NAME} ${APRILTAG_SRCS} ${COMMON_SRC} ${TAG_FILES})
 
+include(GenerateExportHeader)
+generate_export_header(${PROJECT_NAME})
+
 if (MSVC)
     add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
 else()
@@ -54,6 +57,7 @@ endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 3 VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
+set_target_properties(${PROJECT_NAME} PROPERTIES C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden)
 
 include(GNUInstallDirs)
 target_include_directories(${PROJECT_NAME} PUBLIC

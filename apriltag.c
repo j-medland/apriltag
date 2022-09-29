@@ -344,6 +344,14 @@ void apriltag_detector_add_family_bits(apriltag_detector_t *td, apriltag_family_
         quick_decode_init(fam, bits_corrected);
 }
 
+void apriltag_detector_add_family(apriltag_detector_t *td, apriltag_family_t *fam)
+{
+    // Tunable, but really, 2 is a good choice. Values of >=3
+    // consume prohibitively large amounts of memory, and otherwise
+    // you want the largest value possible.
+    apriltag_detector_add_family_bits(td, fam, 2);
+}
+
 void apriltag_detector_clear_families(apriltag_detector_t *td)
 {
     for (int i = 0; i < zarray_size(td->tag_families); i++) {
