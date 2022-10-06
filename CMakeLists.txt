@@ -5,6 +5,7 @@ if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
 option(ASAN "Use AddressSanitizer for debug builds to detect memory issues" OFF)
 
 if (ASAN)
@@ -38,15 +39,70 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS  "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-aux_source_directory(common COMMON_SRC)
-set(APRILTAG_SRCS apriltag.c apriltag_pose.c apriltag_quad_thresh.c)
+# Common Souce
+# Build an OBJECT-library for the items shared between the core and util libs
+add_library(${PROJECT_NAME}-common OBJECT)
 
-# Library
-file(GLOB TAG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tag*.c)
-add_library(${PROJECT_NAME} ${APRILTAG_SRCS} ${COMMON_SRC} ${TAG_FILES})
+set(COMMON_HEADERS
+    common/image_u8.h
+    common/image_u8x3.h
+    common/image_types.h
+    common/pnm.h
+    common/time_util.h
+)
+
+target_sources(${PROJECT_NAME}-common PRIVATE
+    common/image_u8.c
+    common/image_u8x3.c
+    common/pnm.c
+    common/time_util.c
+    ${COMMON_HEADERS}
+)
+
+target_include_directories(${PROJECT_NAME}-common PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+)
+
+# Library (Core functionality)
+add_library(${PROJECT_NAME})
 
 include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME})
+
+file(GLOB TAG_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tag*.h)
+
+set(LIBRARY_HEADERS
+    apriltag.h
+    apriltag_math.h
+    apriltag_pose.h
+    common/g2d.h
+    common/homography.h
+    common/matd.h
+    common/svd22.h
+    common/unionfind.h
+    common/workerpool.h
+    common/zmaxheap.h
+    ${TAG_HEADERS}
+    ${COMMON_HEADERS}
+)
+
+file(GLOB TAG_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tag*.c)
+
+target_sources(${PROJECT_NAME} PRIVATE
+    apriltag.c 
+    apriltag_pose.c 
+    apriltag_quad_thresh.c
+    common/g2d.c
+    common/homography.c
+    common/matd.c
+    common/svd22.c
+    common/unionfind.c
+    common/workerpool.c
+    common/zmaxheap.c
+    ${TAG_SRC}
+    ${LIBRARY_HEADERS}
+    $<TARGET_OBJECTS:${PROJECT_NAME}-common>
+)
 
 if (MSVC)
     add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
@@ -57,20 +113,28 @@ endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 3 VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
-set_target_properties(${PROJECT_NAME} PROPERTIES C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden)
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+    CMAKE_C_VISIBILITY_PRESET hidden 
+    CMAKE_CXX_VISIBILITY_PRESET hidden
+    CMAKE_VISIBILITY_INLINES_HIDDEN ON
+    POSITION_INDEPENDENT_CODE ON
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${PROJECT_NAME}_export.h>)
 
 include(GNUInstallDirs)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/common>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/apriltag")
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/apriltag"
+    # include cmake-generated apriltag_export.h
+    "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/>"
+    )
 
 
 # install header file hierarchy
-file(GLOB HEADER_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.h common/*.h)
-list(REMOVE_ITEM HEADER_FILES apriltag_detect.docstring.h apriltag_py_type.docstring.h)
-
-foreach(HEADER ${HEADER_FILES})
+foreach(HEADER ${LIBRARY_HEADERS})
     string(REGEX MATCH "(.*)[/\\]" DIR ${HEADER})
     install(FILES ${HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${DIR})
 endforeach()
@@ -104,6 +168,8 @@ write_basic_package_version_file("${version_config}" COMPATIBILITY SameMajorVers
 install(TARGETS ${PROJECT_NAME} EXPORT ${targets_export_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
         )
 
 install(EXPORT ${targets_export_name}
@@ -164,28 +230,30 @@ install(FILES ${PROJECT_BINARY_DIR}/apriltag${PY_EXT_SUFFIX} DESTINATION ${PY_DE
 endif (NOT Python3_NOT_FOUND AND NOT Numpy_NOT_FOUND AND PYTHONLIBS_FOUND AND BUILD_PYTHON_WRAPPER)
 
 # Examples
-# apriltag_demo
-add_executable(apriltag_demo example/apriltag_demo.c)
-target_link_libraries(apriltag_demo ${PROJECT_NAME})
+if(BUILD_EXAMPLES)
+    # apriltag_demo
+    add_executable(apriltag_demo example/apriltag_demo.c)
+    target_link_libraries(apriltag_demo ${PROJECT_NAME})
 
-# opencv_demo
-set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
-find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} QUIET CONFIG)
-if(OpenCV_FOUND)
-    # NB: contrib required for TickMeter in OpenCV 2.4. This is only required for 16.04 backwards compatibility and can be removed in the future.
-    #     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
-    if(OpenCV_VERSION VERSION_LESS "3.0.0")
-        list(APPEND _OpenCV_REQUIRED_COMPONENTS contrib)
-        find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} CONFIG)
-    endif()
+    # opencv_demo
+    set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
+    find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} QUIET CONFIG)
+    if(OpenCV_FOUND)
+        # NB: contrib required for TickMeter in OpenCV 2.4. This is only required for 16.04 backwards compatibility and can be removed in the future.
+        #     If we add it to the find_package initially, the demo won't build for newer OpenCV versions
+        if(OpenCV_VERSION VERSION_LESS "3.0.0")
+            list(APPEND _OpenCV_REQUIRED_COMPONENTS contrib)
+            find_package(OpenCV COMPONENTS ${_OpenCV_REQUIRED_COMPONENTS} CONFIG)
+        endif()
 
-    add_executable(opencv_demo example/opencv_demo.cc)
-    target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES})
-    set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
-    install(TARGETS opencv_demo RUNTIME DESTINATION bin)
-else()
-    message(STATUS "OpenCV not found: Not building demo")
-endif(OpenCV_FOUND)
+        add_executable(opencv_demo example/opencv_demo.cc)
+        target_link_libraries(opencv_demo apriltag ${OpenCV_LIBRARIES})
+        set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
+        install(TARGETS opencv_demo RUNTIME DESTINATION bin)
+    else()
+        message(STATUS "OpenCV not found: Not building demo")
+    endif(OpenCV_FOUND)
 
-# install example programs
-install(TARGETS apriltag_demo RUNTIME DESTINATION bin)
+    # install example programs
+    install(TARGETS apriltag_demo RUNTIME DESTINATION bin)
+endif()

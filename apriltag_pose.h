@@ -67,7 +67,7 @@ void estimate_tag_pose_orthogonal_iteration(
  * @outparam pose 
  * @return Object-space error of returned pose.
  */
-double estimate_tag_pose(apriltag_detection_info_t* info, apriltag_pose_t* pose);
+APRILTAG_EXPORT double estimate_tag_pose(apriltag_detection_info_t* info, apriltag_pose_t* pose);
 
 #ifdef __cplusplus
 }

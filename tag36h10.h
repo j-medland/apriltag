@@ -34,8 +34,8 @@ either expressed or implied, of the Regents of The University of Michigan.
 extern "C" {
 #endif
 
-apriltag_family_t *tag36h10_create();
-void tag36h10_destroy(apriltag_family_t *tf);
+APRILTAG_EXPORT apriltag_family_t *tag36h10_create();
+APRILTAG_EXPORT void tag36h10_destroy(apriltag_family_t *tf);
 
 #ifdef __cplusplus
 }
