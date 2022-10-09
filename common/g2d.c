@@ -31,7 +31,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <string.h>
 
 #include "g2d.h"
-#include "common/math_util.h"
+#include "math_util.h"
 
 #ifdef _WIN32
 static inline long int random(void)
