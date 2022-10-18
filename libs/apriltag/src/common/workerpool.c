@@ -28,7 +28,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 
 #define _GNU_SOURCE  // Possible fix for 16.04
 #define __USE_GNU
-#include "pthreads_cross.h"
+#include "common/pthreads_cross.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +38,8 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <unistd.h>
 #endif
 
-#include "workerpool.h"
-#include "debug_print.h"
+#include "common/workerpool.h"
+#include "common/debug_print.h"
 
 struct workerpool {
     int nthreads;

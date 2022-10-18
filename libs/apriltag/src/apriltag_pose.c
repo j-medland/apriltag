@@ -1,8 +1,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "common/debug_print.h"
 #include "apriltag_pose.h"
+#include "common/debug_print.h"
 #include "common/homography.h"
 
 

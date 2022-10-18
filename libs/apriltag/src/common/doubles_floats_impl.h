@@ -30,8 +30,8 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <string.h>
 #include <float.h>
 
-#include "matd.h"
-#include "math_util.h"
+#include "common/matd.h"
+#include "common/math_util.h"
 
 // XXX Write unit tests for me!
 // XXX Rewrite matd_coords in terms of this.

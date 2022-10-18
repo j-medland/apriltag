@@ -27,6 +27,6 @@ either expressed or implied, of the Regents of The University of Michigan.
 
 #pragma once
 
-#define TNAME float
-#include "doubles_floats_impl.h"
+#define TNAME double
+#include "common/doubles_floats_impl.h"
 #undef TNAME

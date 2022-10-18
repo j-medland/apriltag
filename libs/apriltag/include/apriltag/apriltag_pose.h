@@ -4,9 +4,7 @@
 extern "C" {
 #endif
 
-
 #include "apriltag.h"
-#include "common/matd.h"
 
 typedef struct {
     apriltag_detection_t* det;
