@@ -48,9 +48,9 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include "common/math_util.h"
 #include "common/g2d.h"
 #include "common/debug_print.h"
-#include "common/apriltag_math.h"
-
 #include "common/postscript_utils.h"
+
+#include "apriltag_math.h"
 
 #ifndef M_PI
 # define M_PI 3.141592653589793238462643383279502884196
