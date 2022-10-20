@@ -39,17 +39,43 @@ target_sources(common PRIVATE
     ${HEADERS_COMMON}
 )
 
-target_include_directories(common
+target_include_directories(common 
     PUBLIC
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-    PRIVATE
-    include/common
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/common>
 )
+
+# includes interface target 
+# used to overcome object libraries not passing on their include_dirs
+add_library(${PROJECT_NAME}-include INTERFACE)
+
+target_include_directories(${PROJECT_NAME}-include
+   INTERFACE
+   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
+   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+   # include cmake-generated apriltag_export.h
+   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+)
+
+set_target_properties(${PROJECT_NAME}-include PROPERTIES EXPORT_NAME includes)
+
+# Use interface targets to manage dependencies for different targets
+add_library(${PROJECT_NAME}-link-libs INTERFACE)
+add_library(${PROJECT_NAME}-utils-link-libs INTERFACE)
+if (MSVC)
+    add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
+else()
+    find_package(Threads REQUIRED)
+    target_link_libraries(${PROJECT_NAME}-link-libs INTERFACE Threads::Threads m)
+    target_link_libraries(${PROJECT_NAME}-utils-link-libs INTERFACE m)
+endif()
 
 # Detector Library
 add_library(detector-object OBJECT)
 
 set_target_properties(detector-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(detector-object PRIVATE ${PROJECT_NAME}-include)
+
 
 generate_export_header(detector-object BASE_NAME apriltag)
 
@@ -81,34 +107,25 @@ target_sources(detector-object PRIVATE
     src/common/unionfind.c
     src/common/workerpool.c
     src/common/zmaxheap.c
-    $<TARGET_OBJECTS:common>
     ${HEADERS_DETECTOR}
 )
 
-if (MSVC)
-    # MSVC target options
-else()
-    find_package(Threads REQUIRED)
-    target_link_libraries(detector-object PUBLIC Threads::Threads m)
-endif()
-
-target_link_libraries(detector-object PRIVATE $<TARGET_OBJECTS:common>)
-
-target_include_directories(detector-object 
-   PUBLIC
-   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-   # include cmake-generated apriltag_export.h
-   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+add_library(${PROJECT_NAME}-detector 
+    $<TARGET_OBJECTS:detector-object>
+    $<TARGET_OBJECTS:common>
 )
 
-add_library(${PROJECT_NAME}-detector $<TARGET_OBJECTS:detector-object>)
+target_link_libraries(${PROJECT_NAME}-detector 
+    INTERFACE 
+        ${PROJECT_NAME}-include 
+        ${PROJECT_NAME}-link-libs
+)
 
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-detector)
 
 set_apriltag_named_exports_only(${PROJECT_NAME}-detector)
 
-set_property(TARGET ${PROJECT_NAME}-detector PROPERTY EXPORT_NAME detector)
+set_target_properties(${PROJECT_NAME}-detector PROPERTIES EXPORT_NAME detector)
 
 # Tag Family Libraries
 set(TAG_FAMILIES
@@ -141,15 +158,7 @@ foreach(TAG_FAMILY ${TAG_FAMILIES})
 
     target_sources(${TAG_TARGET_OBJECT} PRIVATE src/${TAG_FAMILY}.c ${TAG_FAMILY_HEADER})
 
-    # Add include directories manually as OBJECT libs don't pass their target_include_dirs
-    # to their users so linking to detector-object wouldn't help
-    target_include_directories(${TAG_TARGET_OBJECT} 
-        PUBLIC
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-        # include cmake-generated apriltag_export.h
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-    )
+    target_link_libraries(${TAG_TARGET_OBJECT} PRIVATE ${PROJECT_NAME}-include)
 
     # Create standalone library for object
     set(TAG_TARGET ${PROJECT_NAME}-${TAG_FAMILY})
@@ -157,7 +166,9 @@ foreach(TAG_FAMILY ${TAG_FAMILIES})
 
     add_library(${TAG_TARGET} $<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>)
 
-    set_property(TARGET ${TAG_TARGET} PROPERTY EXPORT_NAME ${TAG_FAMILY})
+    target_link_libraries(${TAG_TARGET} INTERFACE ${PROJECT_NAME}-include)
+
+    set_target_properties(${TAG_TARGET} PROPERTIES EXPORT_NAME ${TAG_FAMILY})
     set_apriltag_lib_property_defaults(${TAG_TARGET})
     set_apriltag_named_exports_only(${TAG_TARGET})
 
@@ -166,29 +177,31 @@ endforeach()
 
 # all tags library
 add_library(${PROJECT_NAME}-tags ${OBJECT_LIBS_TAGS})
-target_sources(${PROJECT_NAME}-tags PUBLIC ${OBJECT_LIBS_TAGS})
-target_link_directories(${PROJECT_NAME}-tags PUBLIC ${OBJECT_LIBS_TAGS})
-set_property(TARGET ${PROJECT_NAME}-tags PROPERTY EXPORT_NAME tags)
+set_target_properties(${PROJECT_NAME}-tags PROPERTIES EXPORT_NAME tags)
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-tags)
 set_apriltag_named_exports_only(${PROJECT_NAME}-tags)
+target_link_libraries(${PROJECT_NAME}-tags INTERFACE ${PROJECT_NAME}-include)
+
 
 # Utils Library
 add_library(utils-object OBJECT)
 
 set_target_properties(utils-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(utils-object PRIVATE $<TARGET_PROPERTY:common,INTERFACE_INCLUDE_DIRECTORIES>)
 
-    set(HEADERS_UTIL
-        getopt.h
-        image_u8x4.h
-        pam.h
-        pjpeg.h
-        string_util.h
-        zhash.h
-    )
+set(HEADERS_UTIL
+    getopt.h
+    image_u8x4.h
+    pam.h
+    pjpeg.h
+    string_util.h
+    zhash.h
+)
 
-    list(TRANSFORM HEADERS_UTIL PREPEND ${CMAKE_SOURCE_DIR}/include/common/)
-    
-    target_sources(utils-object PRIVATE
+list(TRANSFORM HEADERS_UTIL PREPEND ${CMAKE_SOURCE_DIR}/include/common/)
+
+target_sources(utils-object 
+    PRIVATE
         src/common/string_util.c
         src/common/pjpeg-idct.c
         src/common/pjpeg.c
@@ -197,29 +210,19 @@ set_target_properties(utils-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
         src/common/pam.c
         src/common/zhash.c
         src/common/zarray.c
-        $<TARGET_OBJECTS:common>
         ${HEADERS_UTIL}
-    )
+)
 
-    if (MSVC)
-        add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
-    else()
-        target_link_libraries(utils-object PUBLIC m)
-    endif()
+add_library(${PROJECT_NAME}-utils $<TARGET_OBJECTS:utils-object> $<TARGET_OBJECTS:common>)
+target_link_libraries(${PROJECT_NAME}-utils 
+    INTERFACE 
+        ${PROJECT_NAME}-include
+        ${PROJECT_NAME}-utils-link-libs
+)
+set_target_properties(${PROJECT_NAME}-utils PROPERTIES EXPORT_NAME utils)
 
-    target_include_directories(utils-object 
-        PUBLIC
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-        PRIVATE
-        include/common
-    )
-
-    add_library(${PROJECT_NAME}-utils $<TARGET_OBJECTS:utils-object>)
-
-    set_property(TARGET ${PROJECT_NAME}-utils PROPERTY EXPORT_NAME utils)
-    set_apriltag_lib_property_defaults(${PROJECT_NAME}-utils)
-    set_apriltag_export_all(${PROJECT_NAME}-utils)
-
+set_apriltag_lib_property_defaults(${PROJECT_NAME}-utils)
+set_apriltag_export_all(${PROJECT_NAME}-utils)
 
 # install library header file hierarchy
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
@@ -228,13 +231,18 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAM
 install(FILES $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/apriltag_export.h> DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/)
 
 # Combined Apriltag Library to support legacy builds
-add_library(${PROJECT_NAME})
-target_sources(${PROJECT_NAME}
-    PUBLIC
-    $<TARGET_OBJECTS:detector-object> 
-    ${OBJECT_LIBS_TAGS}
-    $<TARGET_OBJECTS:utils-object>
-    $<TARGET_OBJECTS:common> 
+add_library(${PROJECT_NAME} 
+        $<TARGET_OBJECTS:detector-object> 
+        ${OBJECT_LIBS_TAGS}
+        $<TARGET_OBJECTS:utils-object>
+        $<TARGET_OBJECTS:common>
+)
+
+target_link_libraries(${PROJECT_NAME} 
+    INTERFACE
+    ${PROJECT_NAME}-include
+    ${PROJECT_NAME}-link-libs
+    ${PROJECT_NAME}-utils-link-libs
 )
 
 set_apriltag_lib_property_defaults(${PROJECT_NAME})
@@ -266,11 +274,14 @@ write_basic_package_version_file("${version_config}" COMPATIBILITY SameMajorVers
 
 
 set(APRILTAG_INSTALL_TARGETS
-    apriltag
-    apriltag-detector
-    apriltag-tags
+    ${PROJECT_NAME}-include
+    ${PROJECT_NAME}-link-libs
+    ${PROJECT_NAME}-utils-link-libs
+    ${PROJECT_NAME}-detector
+    ${PROJECT_NAME}-tags
     ${TARGETS_TAGS}
-    apriltag-utils
+    ${PROJECT_NAME}-utils
+    ${PROJECT_NAME}
 )
 
 # install library
@@ -278,6 +289,7 @@ install(TARGETS ${APRILTAG_INSTALL_TARGETS} EXPORT ${targets_export_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(EXPORT ${targets_export_name}
