@@ -1458,3 +1458,11 @@ image_u8_t *apriltag_to_image(apriltag_family_t *fam, int idx)
     }
     return im;
 }
+
+void apriltag_image_destroy(image_u8_t * im){
+    image_u8_destroy(im);
+}
+
+int apriltag_image_write_pnm(image_u8_t * im, const char* path){
+    return image_u8_write_pnm(im,path);
+}

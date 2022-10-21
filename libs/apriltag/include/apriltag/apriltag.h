@@ -267,6 +267,12 @@ APRILTAG_EXPORT void apriltag_detections_destroy(zarray_t *detections);
 // Caller is responsible for calling image_u8_destroy on the image
 APRILTAG_EXPORT image_u8_t *apriltag_to_image(apriltag_family_t *fam, int idx);
 
+// Add exported calls to allow image to be destroyed
+APRILTAG_EXPORT void apriltag_image_destroy(image_u8_t * im);
+
+// Add exported calls to allow image to be written to pnm file
+APRILTAG_EXPORT int apriltag_image_write_pnm(image_u8_t * im, const char* path);
+
 #ifdef __cplusplus
 }
 #endif

@@ -7,18 +7,18 @@ endfunction()
 
 function(set_apriltag_named_exports_only target_name)
     set_target_properties(${target_name} PROPERTIES 
-        CMAKE_C_VISIBILITY_PRESET hidden 
-        CMAKE_CXX_VISIBILITY_PRESET hidden
-        CMAKE_VISIBILITY_INLINES_HIDDEN ON
-        CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF
+        C_VISIBILITY_PRESET hidden 
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+        WINDOWS_EXPORT_ALL_SYMBOLS OFF
     )
 endfunction()
 
 function(set_apriltag_export_all target_name)
     set_target_properties(${target_name} PROPERTIES 
-    CMAKE_C_VISIBILITY_PRESET default 
-    CMAKE_CXX_VISIBILITY_PRESET default
-    CMAKE_VISIBILITY_INLINES_HIDDEN OFF
-    CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON
-)
+        C_VISIBILITY_PRESET default 
+        CXX_VISIBILITY_PRESET default
+        VISIBILITY_INLINES_HIDDEN OFF
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+    )
 endfunction()

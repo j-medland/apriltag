@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-project(apriltag VERSION 3.3.69 LANGUAGES C CXX)
+project(apriltag VERSION 3.3.0 LANGUAGES C CXX)
 
 if (MSVC)
     add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
@@ -12,6 +12,8 @@ endif()
 include(GNUInstallDirs)
 include(GenerateExportHeader)
 include(${CMAKE_SOURCE_DIR}/CMake/apriltagHelperFunctions.cmake)
+
+set(INCLUDE_ROOT_DIR ${CMAKE_SOURCE_DIR}/include/apriltag)
 
 # Common Souce
 add_library(common OBJECT)
@@ -29,7 +31,7 @@ set(HEADERS_COMMON
     zarray.h
 )
 
-list(TRANSFORM HEADERS_COMMON PREPEND ${CMAKE_SOURCE_DIR}/include/common/)
+list(TRANSFORM HEADERS_COMMON PREPEND ${INCLUDE_ROOT_DIR}/common/)
 
 target_sources(common PRIVATE
     src/common/image_u8.c
@@ -41,9 +43,11 @@ target_sources(common PRIVATE
 
 target_include_directories(common 
     PUBLIC
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/common>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
+        $<BUILD_INTERFACE:${INCLUDE_ROOT_DIR}/common>
 )
+
+set_apriltag_named_exports_only(common)
 
 # includes interface target 
 # used to overcome object libraries not passing on their include_dirs
@@ -52,7 +56,7 @@ add_library(${PROJECT_NAME}-include INTERFACE)
 target_include_directories(${PROJECT_NAME}-include
    INTERFACE
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+   $<BUILD_INTERFACE:${INCLUDE_ROOT_DIR}>
    # include cmake-generated apriltag_export.h
    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 )
@@ -76,7 +80,6 @@ add_library(detector-object OBJECT)
 set_target_properties(detector-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(detector-object PRIVATE ${PROJECT_NAME}-include)
 
-
 generate_export_header(detector-object BASE_NAME apriltag)
 
 set(HEADERS_DETECTOR
@@ -94,7 +97,7 @@ set(HEADERS_DETECTOR
     common/zmaxheap.h
 )
 
-list(TRANSFORM HEADERS_DETECTOR PREPEND ${CMAKE_SOURCE_DIR}/include/)
+list(TRANSFORM HEADERS_DETECTOR PREPEND ${INCLUDE_ROOT_DIR}/)
 
 target_sources(detector-object PRIVATE
     src/apriltag.c 
@@ -110,6 +113,8 @@ target_sources(detector-object PRIVATE
     ${HEADERS_DETECTOR}
 )
 
+set_apriltag_named_exports_only(detector-object)
+
 add_library(${PROJECT_NAME}-detector 
     $<TARGET_OBJECTS:detector-object>
     $<TARGET_OBJECTS:common>
@@ -122,7 +127,6 @@ target_link_libraries(${PROJECT_NAME}-detector
 )
 
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-detector)
-
 set_apriltag_named_exports_only(${PROJECT_NAME}-detector)
 
 set_target_properties(${PROJECT_NAME}-detector PROPERTIES EXPORT_NAME detector)
@@ -154,11 +158,13 @@ foreach(TAG_FAMILY ${TAG_FAMILIES})
 
     set_target_properties(${TAG_TARGET_OBJECT} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-    set(TAG_FAMILY_HEADER include/${TAG_FAMILY}.h)
+    set(TAG_FAMILY_HEADER ${INCLUDE_ROOT_DIR}/${TAG_FAMILY}.h)
 
     target_sources(${TAG_TARGET_OBJECT} PRIVATE src/${TAG_FAMILY}.c ${TAG_FAMILY_HEADER})
 
     target_link_libraries(${TAG_TARGET_OBJECT} PRIVATE ${PROJECT_NAME}-include)
+
+    set_apriltag_named_exports_only(${TAG_TARGET_OBJECT})
 
     # Create standalone library for object
     set(TAG_TARGET ${PROJECT_NAME}-${TAG_FAMILY})
@@ -198,7 +204,7 @@ set(HEADERS_UTIL
     zhash.h
 )
 
-list(TRANSFORM HEADERS_UTIL PREPEND ${CMAKE_SOURCE_DIR}/include/common/)
+list(TRANSFORM HEADERS_UTIL PREPEND ${INCLUDE_ROOT_DIR}/common/)
 
 target_sources(utils-object 
     PRIVATE
@@ -212,6 +218,7 @@ target_sources(utils-object
         src/common/zarray.c
         ${HEADERS_UTIL}
 )
+set_apriltag_export_all(utils-object)
 
 add_library(${PROJECT_NAME}-utils $<TARGET_OBJECTS:utils-object> $<TARGET_OBJECTS:common>)
 target_link_libraries(${PROJECT_NAME}-utils 
@@ -225,7 +232,7 @@ set_apriltag_lib_property_defaults(${PROJECT_NAME}-utils)
 set_apriltag_export_all(${PROJECT_NAME}-utils)
 
 # install library header file hierarchy
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+install(DIRECTORY ${INCLUDE_ROOT_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
 #install apriltag_exports.h
 install(FILES $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/apriltag_export.h> DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/)

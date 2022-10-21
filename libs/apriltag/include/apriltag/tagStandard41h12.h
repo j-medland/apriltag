@@ -25,8 +25,8 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the Regents of The University of Michigan.
 */
 
-#ifndef _TAGStandard52H13
-#define _TAGStandard52H13
+#ifndef _TAGStandard41H12
+#define _TAGStandard41H12
 
 #include "apriltag.h"
 
@@ -34,8 +34,8 @@ either expressed or implied, of the Regents of The University of Michigan.
 extern "C" {
 #endif
 
-apriltag_family_t *tagStandard52h13_create();
-void tagStandard52h13_destroy(apriltag_family_t *tf);
+APRILTAG_EXPORT apriltag_family_t *tagStandard41h12_create();
+APRILTAG_EXPORT void tagStandard41h12_destroy(apriltag_family_t *tf);
 
 #ifdef __cplusplus
 }
