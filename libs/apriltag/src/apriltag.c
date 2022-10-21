@@ -1431,14 +1431,17 @@ void apriltag_detections_destroy(zarray_t *detections)
     zarray_destroy(detections);
 }
 
-image_u8_t *apriltag_to_image(apriltag_family_t *fam, int idx)
+image_u8_t *apriltag_to_image(apriltag_family_t *fam, unsigned int idx)
 {
-    assert(fam != NULL);
-    assert(idx >= 0 && idx < fam->ncodes);
+    image_u8_t *im = NULL;
+
+    if(fam == NULL || idx >= fam->ncodes){
+        return im;
+    }
 
     uint64_t code = fam->codes[idx];
 
-    image_u8_t *im = image_u8_create(fam->total_width, fam->total_width);
+    im = image_u8_create(fam->total_width, fam->total_width);
 
     int white_border_width = fam->width_at_border + (fam->reversed_border ? 0 : 2);
     int white_border_start = (fam->total_width - white_border_width)/2;

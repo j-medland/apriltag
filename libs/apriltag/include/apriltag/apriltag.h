@@ -265,7 +265,7 @@ APRILTAG_EXPORT void apriltag_detections_destroy(zarray_t *detections);
 
 // Renders the apriltag.
 // Caller is responsible for calling image_u8_destroy on the image
-APRILTAG_EXPORT image_u8_t *apriltag_to_image(apriltag_family_t *fam, int idx);
+APRILTAG_EXPORT image_u8_t *apriltag_to_image(apriltag_family_t *fam, unsigned int idx);
 
 // Add exported calls to allow image to be destroyed
 APRILTAG_EXPORT void apriltag_image_destroy(image_u8_t * im);

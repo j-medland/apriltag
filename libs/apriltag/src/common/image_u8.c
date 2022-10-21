@@ -202,7 +202,7 @@ int image_u8_write_pnm(const image_u8_t *im, const char *path)
     FILE *f = fopen(path, "wb");
     int res = 0;
 
-    if (f == NULL) {
+    if (f == NULL || im == NULL) {
         res = -1;
         goto finish;
     }
