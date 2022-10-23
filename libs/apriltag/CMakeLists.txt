@@ -17,7 +17,6 @@ set(HEADERS_COMMON
     zarray.h
 )
 
-
 list(TRANSFORM HEADERS_COMMON PREPEND ${HEADERS_DIR}/apriltag/common/)
 
 set(SRC_COMMON
@@ -101,6 +100,7 @@ target_sources(detector-object PRIVATE
     src/common/g2d.c
     src/common/homography.c
     src/common/matd.c
+    src/common/pthreads_cross.cpp
     src/common/svd22.c
     src/common/workerpool.c
     src/common/zmaxheap.c
@@ -116,7 +116,7 @@ add_library(${PROJECT_NAME}-detector
 )
 
 target_link_libraries(${PROJECT_NAME}-detector 
-    INTERFACE 
+    PUBLIC
         ${PROJECT_NAME}-include 
         ${PROJECT_NAME}-link-libs
 )
@@ -167,7 +167,7 @@ foreach(TAG_FAMILY ${TAG_FAMILIES})
 
     add_library(${TAG_TARGET} "$<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>")
 
-    target_link_libraries(${TAG_TARGET} INTERFACE ${PROJECT_NAME}-include)
+    target_link_libraries(${TAG_TARGET} PUBLIC ${PROJECT_NAME}-include)
 
     set_target_properties(${TAG_TARGET} PROPERTIES EXPORT_NAME ${TAG_FAMILY})
     set_apriltag_lib_property_defaults(${TAG_TARGET})
@@ -181,7 +181,7 @@ add_library(${PROJECT_NAME}-tags ${OBJECT_LIBS_TAGS})
 set_target_properties(${PROJECT_NAME}-tags PROPERTIES EXPORT_NAME tags)
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-tags)
 set_apriltag_named_exports_only(${PROJECT_NAME}-tags)
-target_link_libraries(${PROJECT_NAME}-tags INTERFACE ${PROJECT_NAME}-include)
+target_link_libraries(${PROJECT_NAME}-tags PUBLIC ${PROJECT_NAME}-include)
 
 
 # Utils Library
@@ -217,7 +217,7 @@ set_apriltag_export_all(utils-object)
 
 add_library(${PROJECT_NAME}-utils "$<TARGET_OBJECTS:utils-object>" "$<TARGET_OBJECTS:common>")
 target_link_libraries(${PROJECT_NAME}-utils 
-    INTERFACE 
+    PUBLIC 
         ${PROJECT_NAME}-include
         ${PROJECT_NAME}-utils-link-libs
 )
@@ -241,7 +241,7 @@ add_library(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} 
-    INTERFACE
+    PUBLIC
     ${PROJECT_NAME}-include
     ${PROJECT_NAME}-link-libs
     ${PROJECT_NAME}-utils-link-libs
