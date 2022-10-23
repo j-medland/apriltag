@@ -32,10 +32,10 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <ctype.h>
 #include <errno.h>
 
-#include "zhash.h"
-#include "zarray.h"
-#include "getopt.h"
-#include "math_util.h"
+#include "apriltag/common/zhash.h"
+#include "apriltag/common/zarray.h"
+#include "apriltag/common/getopt.h"
+#include "apriltag/common/math_util.h"
 
 #define GOO_BOOL_TYPE 1
 #define GOO_STRING_TYPE 2

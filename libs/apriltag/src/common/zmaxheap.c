@@ -32,8 +32,8 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <assert.h>
 #include <stdint.h>
 
-#include "common/zmaxheap.h"
-#include "common/debug_print.h"
+#include "apriltag/common/zmaxheap.h"
+#include "apriltag/common/debug_print.h"
 
 #ifdef _WIN32
 static inline long int random(void)

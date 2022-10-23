@@ -26,7 +26,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 */
 
 #include <stdlib.h>
-#include "tagCustom48h12.h"
+#include "apriltag/tagCustom48h12.h"
 
 static uint64_t codedata[42211] = {
    0x0000d6c8ae76dff0UL,

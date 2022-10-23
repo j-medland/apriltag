@@ -30,7 +30,7 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the Regents of The University of Michigan.
 */
 
-#include "apriltag.h"
+#include "apriltag/apriltag.h"
 
 #include <math.h>
 #include <assert.h>
@@ -39,16 +39,16 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <stdio.h>
 #include <errno.h>
 
-#include "common/image_u8.h"
-#include "common/image_u8x3.h"
-#include "common/zarray.h"
-#include "common/matd.h"
-#include "common/homography.h"
-#include "common/timeprofile.h"
-#include "common/math_util.h"
-#include "common/g2d.h"
-#include "common/debug_print.h"
-#include "common/postscript_utils.h"
+#include "apriltag/common/image_u8.h"
+#include "apriltag/common/image_u8x3.h"
+#include "apriltag/common/zarray.h"
+#include "apriltag/common/matd.h"
+#include "apriltag/common/homography.h"
+#include "apriltag/common/timeprofile.h"
+#include "apriltag/common/math_util.h"
+#include "apriltag/common/g2d.h"
+#include "apriltag/common/debug_print.h"
+#include "apriltag/common/postscript_utils.h"
 
 #include "apriltag_math.h"
 

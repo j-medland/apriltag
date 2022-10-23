@@ -1,24 +1,10 @@
-cmake_minimum_required(VERSION 3.4)
-project(apriltag VERSION 3.3.0 LANGUAGES C CXX)
-
-if (MSVC)
-    add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
-endif()
-
-if(POLICY CMP0077)
-    cmake_policy(SET CMP0077 NEW)
-endif()
-
 include(GNUInstallDirs)
 include(GenerateExportHeader)
-include(${CMAKE_SOURCE_DIR}/CMake/apriltagHelperFunctions.cmake)
+include(CMake/apriltagHelperFunctions.cmake)
 
-set(INCLUDE_ROOT_DIR ${CMAKE_SOURCE_DIR}/include/apriltag)
+set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Common Souce
-add_library(common OBJECT)
-
-set_target_properties(common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set(HEADERS_COMMON
     debug_print.h
@@ -31,23 +17,32 @@ set(HEADERS_COMMON
     zarray.h
 )
 
-list(TRANSFORM HEADERS_COMMON PREPEND ${INCLUDE_ROOT_DIR}/common/)
 
-target_sources(common PRIVATE
+list(TRANSFORM HEADERS_COMMON PREPEND ${HEADERS_DIR}/apriltag/common/)
+
+set(SRC_COMMON
     src/common/image_u8.c
     src/common/image_u8x3.c
     src/common/pnm.c
     src/common/time_util.c
+)
+
+add_library(common OBJECT)
+
+set_target_properties(common PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_sources(common PRIVATE
+    ${SRC_COMMON}
     ${HEADERS_COMMON}
 )
 
 target_include_directories(common 
     PUBLIC
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
-        $<BUILD_INTERFACE:${INCLUDE_ROOT_DIR}/common>
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
+        "$<BUILD_INTERFACE:${HEADERS_DIR}>"
 )
 
-set_apriltag_named_exports_only(common)
+set_apriltag_export_all(common)
 
 # includes interface target 
 # used to overcome object libraries not passing on their include_dirs
@@ -55,10 +50,10 @@ add_library(${PROJECT_NAME}-include INTERFACE)
 
 target_include_directories(${PROJECT_NAME}-include
    INTERFACE
-   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}
-   $<BUILD_INTERFACE:${INCLUDE_ROOT_DIR}>
+   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/${PROJECT_NAME}"
+   "$<BUILD_INTERFACE:${HEADERS_DIR}>"
    # include cmake-generated apriltag_export.h
-   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+   "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
 )
 
 set_target_properties(${PROJECT_NAME}-include PROPERTIES EXPORT_NAME includes)
@@ -97,7 +92,7 @@ set(HEADERS_DETECTOR
     common/zmaxheap.h
 )
 
-list(TRANSFORM HEADERS_DETECTOR PREPEND ${INCLUDE_ROOT_DIR}/)
+list(TRANSFORM HEADERS_DETECTOR PREPEND ${HEADERS_DIR}/apriltag/)
 
 target_sources(detector-object PRIVATE
     src/apriltag.c 
@@ -107,7 +102,6 @@ target_sources(detector-object PRIVATE
     src/common/homography.c
     src/common/matd.c
     src/common/svd22.c
-    src/common/unionfind.c
     src/common/workerpool.c
     src/common/zmaxheap.c
     ${HEADERS_DETECTOR}
@@ -116,8 +110,9 @@ target_sources(detector-object PRIVATE
 set_apriltag_named_exports_only(detector-object)
 
 add_library(${PROJECT_NAME}-detector 
-    $<TARGET_OBJECTS:detector-object>
-    $<TARGET_OBJECTS:common>
+    "$<TARGET_OBJECTS:detector-object>"
+    ${SRC_COMMON} # common object target exports all symbols which is undesirable so just add src
+    ${HEADERS_COMMON}
 )
 
 target_link_libraries(${PROJECT_NAME}-detector 
@@ -151,14 +146,14 @@ set(HEADERS_TAGS "")
 foreach(TAG_FAMILY ${TAG_FAMILIES})
     # for each tag family
     set(TAG_TARGET_OBJECT ${TAG_FAMILY}-object)
-    LIST(APPEND OBJECT_LIBS_TAGS $<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>)
+    LIST(APPEND OBJECT_LIBS_TAGS "$<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>")
 
     # create Tag-Family object target
     add_library(${TAG_TARGET_OBJECT} OBJECT)
 
     set_target_properties(${TAG_TARGET_OBJECT} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-    set(TAG_FAMILY_HEADER ${INCLUDE_ROOT_DIR}/${TAG_FAMILY}.h)
+    set(TAG_FAMILY_HEADER ${HEADERS_DIR}/apriltag/${TAG_FAMILY}.h)
 
     target_sources(${TAG_TARGET_OBJECT} PRIVATE src/${TAG_FAMILY}.c ${TAG_FAMILY_HEADER})
 
@@ -170,7 +165,7 @@ foreach(TAG_FAMILY ${TAG_FAMILIES})
     set(TAG_TARGET ${PROJECT_NAME}-${TAG_FAMILY})
     LIST(APPEND TARGETS_TAGS ${TAG_TARGET})
 
-    add_library(${TAG_TARGET} $<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>)
+    add_library(${TAG_TARGET} "$<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>")
 
     target_link_libraries(${TAG_TARGET} INTERFACE ${PROJECT_NAME}-include)
 
@@ -193,7 +188,7 @@ target_link_libraries(${PROJECT_NAME}-tags INTERFACE ${PROJECT_NAME}-include)
 add_library(utils-object OBJECT)
 
 set_target_properties(utils-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(utils-object PRIVATE $<TARGET_PROPERTY:common,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(utils-object PRIVATE "$<TARGET_PROPERTY:common,INTERFACE_INCLUDE_DIRECTORIES>")
 
 set(HEADERS_UTIL
     getopt.h
@@ -204,7 +199,7 @@ set(HEADERS_UTIL
     zhash.h
 )
 
-list(TRANSFORM HEADERS_UTIL PREPEND ${INCLUDE_ROOT_DIR}/common/)
+list(TRANSFORM HEADERS_UTIL PREPEND ${HEADERS_DIR}/apriltag/common/)
 
 target_sources(utils-object 
     PRIVATE
@@ -220,7 +215,7 @@ target_sources(utils-object
 )
 set_apriltag_export_all(utils-object)
 
-add_library(${PROJECT_NAME}-utils $<TARGET_OBJECTS:utils-object> $<TARGET_OBJECTS:common>)
+add_library(${PROJECT_NAME}-utils "$<TARGET_OBJECTS:utils-object>" "$<TARGET_OBJECTS:common>")
 target_link_libraries(${PROJECT_NAME}-utils 
     INTERFACE 
         ${PROJECT_NAME}-include
@@ -232,17 +227,17 @@ set_apriltag_lib_property_defaults(${PROJECT_NAME}-utils)
 set_apriltag_export_all(${PROJECT_NAME}-utils)
 
 # install library header file hierarchy
-install(DIRECTORY ${INCLUDE_ROOT_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+install(DIRECTORY ${HEADERS_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 #install apriltag_exports.h
-install(FILES $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/apriltag_export.h> DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/)
+install(FILES "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/apriltag_export.h>" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/)
 
 # Combined Apriltag Library to support legacy builds
 add_library(${PROJECT_NAME} 
-        $<TARGET_OBJECTS:detector-object> 
+        "$<TARGET_OBJECTS:detector-object>" 
         ${OBJECT_LIBS_TAGS}
-        $<TARGET_OBJECTS:utils-object>
-        $<TARGET_OBJECTS:common>
+        "$<TARGET_OBJECTS:utils-object>"
+        "$<TARGET_OBJECTS:common>"
 )
 
 target_link_libraries(${PROJECT_NAME} 
@@ -312,6 +307,6 @@ export(TARGETS ${APRILTAG_INSTALL_TARGETS}
 
 # install pkgconfig file
 configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.pc
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

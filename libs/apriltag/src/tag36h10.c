@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "tag36h10.h"
+#include "apriltag/tag36h10.h"
 
 static uint64_t codedata[2320] = {
    0x00000001a42f9469UL,

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(apriltag VERSION 3.3.0 LANGUAGES C CXX)
+project(apriltag-test VERSION 3.3.0 LANGUAGES C CXX)
 
 set(CMAKE_FIND_DEBUG_MODE 1)
 

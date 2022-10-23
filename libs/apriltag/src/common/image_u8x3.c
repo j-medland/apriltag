@@ -31,10 +31,9 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <string.h>
 #include <math.h>
 
-#include "math_util.h"
-#include "pnm.h"
-
-#include "image_u8x3.h"
+#include "apriltag/common/image_u8x3.h"
+#include "apriltag/common/math_util.h"
+#include "apriltag/common/pnm.h"
 
 // least common multiple of 64 (sandy bridge cache line) and 48 (stride needed
 // for 16byte-wide RGB processing). (It's possible that 48 would be enough).

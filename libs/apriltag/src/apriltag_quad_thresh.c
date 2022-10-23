@@ -34,14 +34,14 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <stdio.h>
 #include <stdint.h>
 
-#include "apriltag.h"
-#include "common/image_u8x3.h"
-#include "common/zarray.h"
-#include "common/unionfind.h"
-#include "common/timeprofile.h"
-#include "common/zmaxheap.h"
-#include "common/postscript_utils.h"
-#include "common/math_util.h"
+#include "apriltag/apriltag.h"
+#include "apriltag/common/image_u8x3.h"
+#include "apriltag/common/zarray.h"
+#include "apriltag/common/unionfind.h"
+#include "apriltag/common/timeprofile.h"
+#include "apriltag/common/zmaxheap.h"
+#include "apriltag/common/postscript_utils.h"
+#include "apriltag/common/math_util.h"
 
 #ifdef _WIN32
 static inline long int random(void)

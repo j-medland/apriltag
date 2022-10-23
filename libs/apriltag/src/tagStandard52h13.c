@@ -26,7 +26,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 */
 
 #include <stdlib.h>
-#include "tagStandard52h13.h"
+#include "apriltag/tagStandard52h13.h"
 
 static uint64_t codedata[48714] = {
    0x0004064a19651ff1UL,
