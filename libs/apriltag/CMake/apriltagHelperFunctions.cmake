@@ -11,6 +11,8 @@ function(set_apriltag_named_exports_only target_name)
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
         WINDOWS_EXPORT_ALL_SYMBOLS OFF
+        # multiple libs sharing same auto-generated header so override default to use apriltag_EXPORTS
+        DEFINE_SYMBOL apriltag_EXPORTS
     )
 endfunction()
 
@@ -20,5 +22,7 @@ function(set_apriltag_export_all target_name)
         CXX_VISIBILITY_PRESET default
         VISIBILITY_INLINES_HIDDEN OFF
         WINDOWS_EXPORT_ALL_SYMBOLS ON
+        # multiple libs sharing same auto-generated header so override default to use apriltag_EXPORTS
+        DEFINE_SYMBOL apriltag_EXPORTS
     )
 endfunction()
