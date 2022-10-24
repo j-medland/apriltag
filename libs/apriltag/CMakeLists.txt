@@ -26,22 +26,15 @@ set(SRC_COMMON
     src/common/time_util.c
 )
 
-add_library(common OBJECT)
+add_library(common OBJECT  ${SRC_COMMON} ${HEADERS_COMMON})
 
 set_target_properties(common PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-target_sources(common PRIVATE
-    ${SRC_COMMON}
-    ${HEADERS_COMMON}
-)
-
+set_apriltag_export_all(common)
 target_include_directories(common 
     PUBLIC
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
         "$<BUILD_INTERFACE:${HEADERS_DIR}>"
 )
-
-set_apriltag_export_all(common)
 
 # includes interface target 
 # used to overcome object libraries not passing on their include_dirs
@@ -69,12 +62,6 @@ else()
 endif()
 
 # Detector Library
-add_library(detector-object OBJECT)
-
-set_apriltag_named_exports_only(detector-object)
-set_target_properties(detector-object PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(detector-object PRIVATE ${PROJECT_NAME}-include)
-
 set(HEADERS_DETECTOR
     apriltag.h
     apriltag_pose.h
@@ -92,7 +79,7 @@ set(HEADERS_DETECTOR
 
 list(TRANSFORM HEADERS_DETECTOR PREPEND ${HEADERS_DIR}/apriltag/)
 
-target_sources(detector-object PRIVATE
+SET(SRC_DETECTOR
     src/apriltag.c 
     src/apriltag_pose.c 
     src/apriltag_quad_thresh.c
@@ -106,14 +93,11 @@ target_sources(detector-object PRIVATE
     ${HEADERS_DETECTOR}
 )
 
-# auto generate headers used for all libs here - ensure this call after
-# set_apriltag_named_exports_only() as that fn overrides DEFINE_SYMBOL
-generate_export_header(detector-object BASE_NAME apriltag)
-
 add_library(${PROJECT_NAME}-detector 
-    "$<TARGET_OBJECTS:detector-object>"
-    ${SRC_COMMON} # common object target exports all symbols which is undesirable so just add src
+    ${SRC_COMMON}
+    ${SRC_DETECTOR}
     ${HEADERS_COMMON}
+    ${HEADERS_DETECTOR}
 )
 
 target_link_libraries(${PROJECT_NAME}-detector 
@@ -124,8 +108,10 @@ target_link_libraries(${PROJECT_NAME}-detector
 
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-detector)
 set_apriltag_named_exports_only(${PROJECT_NAME}-detector)
-
 set_target_properties(${PROJECT_NAME}-detector PROPERTIES EXPORT_NAME detector)
+# auto generate headers used for all libs here - ensure this call after
+# set_apriltag_named_exports_only() as that fn overrides DEFINE_SYMBOL
+generate_export_header(${PROJECT_NAME}-detector BASE_NAME apriltag)
 
 # Tag Family Libraries
 set(TAG_FAMILIES
@@ -141,43 +127,35 @@ set(TAG_FAMILIES
 )
 
 set(TARGETS_TAGS "")
-set(OBJECT_LIBS_TAGS "")
 set(HEADERS_TAGS "")
+set(SRC_TAGS "")
 
 foreach(TAG_FAMILY ${TAG_FAMILIES})
     # for each tag family
-    set(TAG_TARGET_OBJECT ${TAG_FAMILY}-object)
-    LIST(APPEND OBJECT_LIBS_TAGS "$<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>")
+    set(TAG_FAMILY_HEADER ${HEADERS_DIR}/apriltag/${TAG_FAMILY}.h)
+    set(TAG_FAMILY_SRC src/${TAG_FAMILY}.c)
+
+    set(TAG_TARGET ${PROJECT_NAME}-${TAG_FAMILY})
 
     # create Tag-Family object target
-    add_library(${TAG_TARGET_OBJECT} OBJECT)
-
-    set_target_properties(${TAG_TARGET_OBJECT} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_apriltag_named_exports_only(${TAG_TARGET_OBJECT})
-    set(TAG_FAMILY_HEADER ${HEADERS_DIR}/apriltag/${TAG_FAMILY}.h)
-    target_sources(${TAG_TARGET_OBJECT} PRIVATE src/${TAG_FAMILY}.c ${TAG_FAMILY_HEADER})
-    target_link_libraries(${TAG_TARGET_OBJECT} PRIVATE ${PROJECT_NAME}-include)
-
-    # Create standalone library for object
-    set(TAG_TARGET ${PROJECT_NAME}-${TAG_FAMILY})
-    LIST(APPEND TARGETS_TAGS ${TAG_TARGET})
-
-    add_library(${TAG_TARGET} "$<TARGET_OBJECTS:${TAG_TARGET_OBJECT}>")
+    add_library(${TAG_TARGET} ${TAG_FAMILY_SRC} ${TAG_FAMILY_HEADER})
     set_apriltag_lib_property_defaults(${TAG_TARGET})
     set_apriltag_named_exports_only(${TAG_TARGET})
     set_target_properties(${TAG_TARGET} PROPERTIES EXPORT_NAME ${TAG_FAMILY})
     target_link_libraries(${TAG_TARGET} PUBLIC ${PROJECT_NAME}-include)
 
+    LIST(APPEND TARGETS_TAGS ${TAG_TARGET})
     LIST(APPEND HEADERS_TAGS ${TAG_FAMILY_HEADER})
+    LIST(APPEND SRC_TAGS ${TAG_FAMILY_SRC})
 endforeach()
 
-# All Tags library
-add_library(${PROJECT_NAME}-tags ${OBJECT_LIBS_TAGS})
+# All-Tag-Families library
+add_library(${PROJECT_NAME}-tags ${SRC_TAGS} ${SRC_HEADERS})
+
 set_target_properties(${PROJECT_NAME}-tags PROPERTIES EXPORT_NAME tags)
 set_apriltag_lib_property_defaults(${PROJECT_NAME}-tags)
 set_apriltag_named_exports_only(${PROJECT_NAME}-tags)
 target_link_libraries(${PROJECT_NAME}-tags PUBLIC ${PROJECT_NAME}-include)
-
 
 # Utils Library
 add_library(utils-object OBJECT)
@@ -221,8 +199,6 @@ target_link_libraries(${PROJECT_NAME}-utils
         ${PROJECT_NAME}-utils-link-libs
 )
 
-
-
 # install library header file hierarchy
 install(DIRECTORY ${HEADERS_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
@@ -231,8 +207,10 @@ install(FILES "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/apriltag_export.h>"
 
 # Combined Apriltag Library to support legacy builds
 add_library(${PROJECT_NAME} 
-        "$<TARGET_OBJECTS:detector-object>" 
-        ${OBJECT_LIBS_TAGS}
+        ${SRC_DETECTOR}
+        ${SRC_TAGS}
+        ${HEADERS_DETECTOR}
+        ${HEADERS_TAGS}
         "$<TARGET_OBJECTS:utils-object>"
         "$<TARGET_OBJECTS:common>"
 )
