@@ -2,6 +2,20 @@ include(GNUInstallDirs)
 include(GenerateExportHeader)
 include(CMake/apriltagHelperFunctions.cmake)
 
+### Build Apriltag Libraries
+## The following targets are built
+##      apriltag-detector (Apriltag's core functionality with only API functions exported)
+##      apriltag-tags (Apriltag's tag libraries)
+##      apriltag-<tag_family_name> e.g apriltag-tagStandard41h12 (Individual libraries for each tag family)
+##      apriltag-utils (Utility functions used in the examples)
+##      apriltag *(Legacy build with all functionality (detector, tags, utils) exported)
+
+### Notes
+# CMake Object Libraries are used where possible to minimize repeat compilation of common code
+# *except* where object libraries would break the export definitions, especially on Windows 
+# (https://gitlab.kitware.com/cmake/cmake/-/issues/20057)
+# CMake Interface targets are used to share properties with other targets
+
 set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Common Souce

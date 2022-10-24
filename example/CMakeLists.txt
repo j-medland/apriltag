@@ -1,6 +1,16 @@
+## Build Examples
+
+### Note
+# apriltag targets are in the same build tree so can be used directly without installation 
+# or including the build-generated apriltagsTargets.cmake file 
+#
+# Typical usage would be to build and *install* the apriltag libraries and then, for your project use
+#       find_package(apriltag REQUIRED)
+#       target_link_libraries(my_application PRIVATE apriltag::detector apriltag::utils apriltag::tags)
+
 # apriltag_demo
 add_executable(apriltag_demo apriltag_demo.c)
-target_link_libraries(apriltag_demo PRIVATE apriltag::detector apriltag::utils apriltag::tags)
+target_link_libraries(apriltag_demo PRIVATE apriltag-detector apriltag-utils apriltag-tags)
 
 # opencv_demo
 set(_OpenCV_REQUIRED_COMPONENTS core imgproc videoio highgui)
@@ -17,9 +27,9 @@ if(OpenCV_FOUND)
     add_executable(opencv_demo opencv_demo.cc)
     target_link_libraries(opencv_demo 
         PRIVATE
-            apriltag::detector
-            apriltag::utils
-            apriltag::tags
+            apriltag-detector
+            apriltag-utils
+            apriltag-tags
             opencv_core
             opencv_imgproc
             opencv_videoio
@@ -27,10 +37,10 @@ if(OpenCV_FOUND)
             "$<$<IN_LIST:contrib,${_OpenCV_REQUIRED_COMPONENTS}>:opencv_contrib>"
         )
     set_target_properties(opencv_demo PROPERTIES CXX_STANDARD 11)
-    install(TARGETS opencv_demo RUNTIME DESTINATION bin)
+    install(TARGETS opencv_demo RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 else()
     message(STATUS "OpenCV not found: Not building demo")
 endif(OpenCV_FOUND)
 
 # install example programs
-install(TARGETS apriltag_demo RUNTIME DESTINATION bin)
+install(TARGETS apriltag_demo RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

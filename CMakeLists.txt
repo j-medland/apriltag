@@ -58,10 +58,6 @@ endif()
 
 # Examples
 if(BUILD_EXAMPLES)
-    # create some alias targets which have the exported-target names
-    add_library(apriltag::detector ALIAS apriltag-detector)
-    add_library(apriltag::tags ALIAS apriltag-tags)
-    add_library(apriltag::utils ALIAS apriltag-utils)
     # build examples
     add_subdirectory(example)
 endif()
